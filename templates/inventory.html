@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory - Pharmacy POS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Medicine Inventory</h1>
+            <p class="text-gray-600">Manage your medicine stock and details</p>
+        </div>
+        <a href="#" onclick="document.getElementById('addMedicineModal').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition shadow-md">
+            <i class="fas fa-plus"></i> Add Medicine
+        </a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="mb-6">
+        <div class="relative">
+            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <input type="text" id="medicineSearch" placeholder="Search by name, batch, or generic name..." class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white">
+        </div>
+    </div>
+    <!-- Medicine Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-gray-50 border-b border-gray-200">
+                    <th class="px-6 py-4 font-semibold text-gray-700">ID</th>
+                    <th class="px-6 py-4 font-semibold text-gray-700">Name</th>
+                    <th class="px-6 py-4 font-semibold text-gray-700">Batch</th>
+                    <th class="px-6 py-4 font-semibold text-gray-700">Generic Name</th>
+                    <th class="px-6 py-4 font-semibold text-gray-700">Supplier</th>
+                    <th class="px-6 py-4 font-semibold text-gray-700">Price</th>
+                    <th class="px-6 py-4 font-semibold text-gray-700">Stock</th>
+                    <th class="px-6 py-4 font-semibold text-gray-700">Expiry Date</th>
+                    <th class="px-6 py-4 font-semibold text-gray-700 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="medicineTableBody" class="divide-y divide-gray-200">
+                {% for m in medicines %}
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ m.id }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">{{ m.name }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">{{ m.batch }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">{{ m.generic_name or 'N/A' }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">{{ m.supplier_name or 'N/A' }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">${{ "%.2f"|format(m.price) }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700 {% if m.stock_qty <= 10 %}text-red-600 font-medium{% else %}text-green-600{% endif %}">{{ m.stock_qty }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-700">{{ m.expiry_date or 'N/A' }}</td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="openEditModal({{ m.id }}, '{{ m.name }}', '{{ m.batch }}', '{{ m.generic_name or '' }}', '{{ m.supplier_name or '' }}', {{ m.price }}, {{ m.stock_qty }}, '{{ m.expiry_date or '' }}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            Edit
+                        </button>
+                        <form action="{{ url_for('delete_medicine', medicine_id=m.id) }}" method="POST" class="inline">
+                            <button type="submit" onclick="return confirm('Are you sure you want to delete this medicine?')" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Medicine Modal -->
+<div id="addMedicineModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">Add New Medicine</h3>
+        </div>
+        <form action="{{ url_for('add_medicine') }}" method="POST" class="p-6 space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Batch <span class="text-red-500">*</span></label>
+                    <input type="text" name="batch" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Generic Name</label>
+                    <input type="text" name="generic_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                    <select name="supplier" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">Select Supplier</option>
+                        {% for s in suppliers %}
+                        <option value="{{ s.name }}">{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                    <input type="number" name="price" step="0.01" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Stock Qty</label>
+                    <input type="number" name="stock_qty" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                    <input type="date" name="expiry_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <button type="button" onclick="document.getElementById('addMedicineModal').classList.add('hidden')" class="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition shadow-md">
+                    Add Medicine
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Medicine Modal -->
+<div id="editMedicineModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">Edit Medicine</h3>
+        </div>
+        <form action="" method="POST" class="p-6 space-y-4" id="editMedicineForm">
+            <input type="hidden" name="medicine_id" id="editMedicineId">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Name <span class="text-red-500">*</span></label>
+                    <input type="text" name="name" id="editName" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Batch <span class="text-red-500">*</span></label>
+                    <input type="text" name="batch" id="editBatch" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Generic Name</label>
+                    <input type="text" name="generic_name" id="editGenericName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                    <select name="supplier" id="editSupplier" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                        <option value="">Select Supplier</option>
+                        {% for s in suppliers %}
+                        <option value="{{ s.name }}">{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                    <input type="number" name="price" id="editPrice" step="0.01" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Stock Qty</label>
+                    <input type="number" name="stock_qty" id="editStockQty" min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
+                    <input type="date" name="expiry_date" id="editExpiryDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                <button type="button" onclick="document.getElementById('editMedicineModal').classList.add('hidden')" class="px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition shadow-md">
+                    Update Medicine
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('medicineSearch').addEventListener('input', function() {
+        const query = this.value;
+        fetch(`/inventory/search?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('medicineTableBody');
+                tbody.innerHTML = '';
+                data.forEach(m => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50 transition border-b border-gray-100 last:border-0';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 text-sm font-medium text-gray-900">${m.id}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${m.name}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${m.batch}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${m.generic_name || 'N/A'}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${m.supplier_name || 'N/A'}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">$${parseFloat(m.price).toFixed(2)}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700 ${m.stock_qty <= 10 ? 'text-red-600 font-medium' : 'text-green-600'}">${m.stock_qty}</td>
+                        <td class="px-6 py-4 text-sm text-gray-700">${m.expiry_date || 'N/A'}</td>
+                        <td class="px-6 py-4 text-right">
+                            <button onclick="openEditModal(${m.id}, '${m.name}', '${m.batch}', '${m.generic_name || ''}', '${m.supplier_name || ''}', ${m.price}, ${m.stock_qty}, '${m.expiry_date || ''}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Edit</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            });
+    });
+
+    function openEditModal(id, name, batch, genericName, supplier, price, stockQty, expiryDate) {
+        document.getElementById('editMedicineId').value = id;
+        document.getElementById('editName').value = name;
+        document.getElementById('editBatch').value = batch;
+        document.getElementById('editGenericName').value = genericName;
+        document.getElementById('editSupplier').value = supplier;
+        document.getElementById('editPrice').value = price;
+        document.getElementById('editStockQty').value = stockQty;
+        document.getElementById('editExpiryDate').value = expiryDate;
+        document.getElementById('editMedicineForm').action = `/inventory/edit/${id}`;
+        document.getElementById('editMedicineModal').classList.remove('hidden');
+    }
+</script>
+{% endblock %}

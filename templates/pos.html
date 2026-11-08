@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}POS Billing - Pharmacy POS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">POS Billing</h1>
+        <p class="text-gray-600">Process sales and manage customer orders</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Left: Medicine Search -->
+        <div class="lg:col-span-7">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-gray-800">Search & Add Medicine</h3>
+                </div>
+
+                <!-- Search -->
+                <div class="relative mb-6">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" id="posMedicineSearch" placeholder="Search by name, batch, or generic name..." class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition bg-white">
+                </div>
+
+                <!-- Medicine List -->
+                <div class="max-h-96 overflow-y-auto border border-gray-200 rounded-lg mb-6">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-gray-50 sticky top-0">
+                            <tr class="border-b border-gray-200">
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase">ID</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Name</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Batch</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Price</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase text-center">Stock</th>
+                                <th class="px-4 py-3 text-xs font-semibold text-gray-500 uppercase text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="posMedicineTableBody" class="divide-y divide-gray-100">
+                            {% for m in medicines %}
+                            <tr class="hover:bg-gray-50 transition">
+                                <td class="px-4 py-3 text-sm text-gray-900">{{ m.id }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700">{{ m.name }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700">{{ m.batch }}</td>
+                                <td class="px-4 py-3 text-sm text-gray-700 text-right">${{ "%.2f"|format(m.price) }}</td>
+                                <td class="px-4 py-3 text-sm text-center {% if m.stock_qty <= 10 %}text-red-600 font-medium{% else %}text-green-600{% endif %}">{{ m.stock_qty }}</td>
+                                <td class="px-4 py-3 text-right">
+                                    <button onclick="addToCart({{ m.id }}, '{{ m.name }}', {{ m.price }}, {{ m.stock_qty }})" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded transition shadow-sm">
+                                        Add
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Right: Cart -->
+        <div class="lg:col-span-5">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full flex flex-col">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-bold text-gray-800">Shopping Cart</h3>
+                </div>
+
+                <!-- Cart Items -->
+                <div id="cartItems" class="flex-1 overflow-y-auto space-y-4 mb-6">
+                    <div class="text-center text-gray-400 py-10">
+                        <i class="fas fa-shopping-cart text-3xl mb-3 opacity-50"></i>
+                        <p class="text-sm">Your cart is empty</p>
+                    </div>
+                </div>
+
+                <!-- Cart Total -->
+                <div class="border-t border-gray-200 pt-6">
+                    <div class="flex justify-between mb-4">
+                        <span class="text-lg font-semibold text-gray-800">Grand Total</span>
+                        <span id="grandTotal" class="text-2xl font-bold text-red-600">$0.00</span>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button onclick="clearCart()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-lg font-medium transition">
+                            Clear Cart
+                        </button>
+                        <button onclick="checkout()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium transition shadow-lg">
+                            Checkout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Checkout Modal -->
+<div id="checkoutModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full">
+        <div class="p-6 border-b border-gray-200">
+            <h3 class="text-lg font-bold text-gray-800">Confirm Checkout</h3>
+        </div>
+        <div class="p-6 space-y-4">
+            <div class="flex justify-between items-center">
+                <span class="text-gray-700">Total Amount:</span>
+                <span id="checkoutTotal" class="text-xl font-bold text-red-600">$0.00</span>
+            </div>
+            <div class="bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
+                <p class="mb-2"><i class="fas fa-info-circle mr-2"></i> Stock will be automatically reduced after sale.</p>
+                <p>A receipt will be generated upon successful checkout.</p>
+            </div>
+            <div class="flex gap-3 pt-4 border-t border-gray-100">
+                <button onclick="document.getElementById('checkoutModal').classList.add('hidden')" class="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg font-medium transition">
+                    Cancel
+                </button>
+                <button onclick="confirmCheckout()" id="confirmCheckoutBtn" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition shadow-md">
+                    Confirm Sale
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div id="receiptModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+        <div class="text-center mb-6">
+            <h3 class="text-xl font-bold text-gray-800">Receipt</h3>
+            <p class="text-gray-500 text-sm">Sale ID: <span id="receiptSaleId">-</span></p>
+            <p class="text-gray-500 text-sm">Date: <span id="receiptDate">-</span></p>
+        </div>
+        <div class="border-t border-gray-200 pt-4 mb-6">
+            <div id="receiptItems" class="space-y-3 mb-6"></div>
+            <div class="flex justify-between text-lg font-bold border-t border-gray-200 pt-3">
+                <span class="text-gray-800">Total:</span>
+                <span id="receiptTotal" class="text-red-600">$0.00</span>
+            </div>
+        </div>
+        <div class="text-center">
+            <p class="text-gray-500 text-sm mb-4">Thank you for your purchase!</p>
+            <button onclick="document.getElementById('receiptModal').classList.add('hidden'); location.reload()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                Close & New Sale
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let cart = [];
+
+    document.getElementById('posMedicineSearch').addEventListener('input', function() {
+        const query = this.value;
+        fetch(`/pos/search?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('posMedicineTableBody');
+                tbody.innerHTML = '';
+                data.forEach(m => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50 transition';
+                    row.innerHTML = `
+                        <td class="px-4 py-3 text-sm text-gray-900">${m.id}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${m.name}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${m.batch}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700 text-right">${parseFloat(m.price).toFixed(2)}</td>
+                        <td class="px-4 py-3 text-sm text-center ${m.stock_qty <= 10 ? 'text-red-600 font-medium' : 'text-green-600'}">${m.stock_qty}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button onclick="addToCart(${m.id}, '${m.name}', ${m.price}, ${m.stock_qty})" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded transition shadow-sm">Add</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            });
+    });
+
+    function addToCart(medicineId, name, price, stock) {
+        const existing = cart.find(item => item.medicine_id === medicineId);
+        if (existing) {
+            if (existing.quantity + 1 > stock) {
+                alert('Not enough stock available!');
+                return;
+            }
+            existing.quantity += 1;
+            existing.total_price = existing.quantity * existing.unit_price;
+        } else {
+            cart.push({ medicine_id: medicineId, name: name, quantity: 1, unit_price: price, total_price: price });
+        }
+        updateCartDisplay();
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCartDisplay();
+    }
+
+    function updateCartDisplay() {
+        const cartItems = document.getElementById('cartItems');
+        const grandTotalEl = document.getElementById('grandTotal');
+        if (cart.length === 0) {
+            cartItems.innerHTML = '<div class="text-center text-gray-400 py-10"><i class="fas fa-shopping-cart text-3xl mb-3 opacity-50"></i><p class="text-sm">Your cart is empty</p></div>';
+            grandTotalEl.textContent = '$0.00';
+            return;
+        }
+        cartItems.innerHTML = '';
+        let grandTotal = 0;
+        cart.forEach((item, index) => {
+            grandTotal += item.total_price;
+            const itemEl = document.createElement('div');
+            itemEl.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100';
+            itemEl.innerHTML = `
+                <div class="flex-1"><p class="font-medium text-gray-800">${item.name}</p><p class="text-xs text-gray-500">$${item.unit_price.toFixed(2)} each</p></div>
+                <div class="flex items-center gap-3">
+                    <button onclick="changeQuantity(${index}, -1)" class="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-xs font-bold">-</button>
+                    <span class="w-8 text-center font-medium">${item.quantity}</span>
+                    <button onclick="changeQuantity(${index}, 1)" class="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-xs font-bold">+</button>
+                    <span class="font-medium text-gray-800">$${item.total_price.toFixed(2)}</span>
+                    <button onclick="removeFromCart(${index})" class="ml-2 text-red-500 hover:text-red-700 text-xs"><i class="fas fa-trash"></i></button>
+                </div>
+            `;
+            cartItems.appendChild(itemEl);
+        });
+        grandTotalEl.textContent = '$' + grandTotal.toFixed(2);
+    }
+
+    function changeQuantity(index, delta) {
+        const item = cart[index];
+        if (delta === -1) { item.quantity -= 1; if (item.quantity === 0) { removeFromCart(index); return; } }
+        else { item.quantity += 1; }
+        item.total_price = item.quantity * item.unit_price;
+        updateCartDisplay();
+    }
+
+    function clearCart() { cart = []; updateCartDisplay(); }
+
+    function checkout() {
+        if (cart.length === 0) { alert('Cart is empty!'); return; }
+        document.getElementById('checkoutTotal').textContent = '$' + cart.reduce((sum, item) => sum + item.total_price, 0).toFixed(2);
+        document.getElementById('checkoutModal').classList.remove('hidden');
+    }
+
+    async function confirmCheckout() {
+        const btn = document.getElementById('confirmCheckoutBtn');
+        btn.disabled = true; btn.textContent = 'Processing...';
+        try {
+            const response = await fetch('/pos/checkout', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cart: cart })
+            });
+            const result = await response.json();
+            if (result.success) {
+                document.getElementById('checkoutModal').classList.add('hidden');
+                showReceipt(result.sale_id, result.total);
+                cart = []; updateCartDisplay();
+            } else { alert(result.message || 'Checkout failed'); }
+        } catch (error) { alert('Checkout failed: ' + error.message); }
+        finally { btn.disabled = false; btn.textContent = 'Confirm Sale'; }
+    }
+
+    function showReceipt(saleId, total) {
+        document.getElementById('receiptSaleId').textContent = saleId;
+        document.getElementById('receiptDate').textContent = new Date().toLocaleString();
+        document.getElementById('receiptTotal').textContent = '$' + total.toFixed(2);
+        const receiptItems = document.getElementById('receiptItems');
+        receiptItems.innerHTML = '';
+        cart.forEach(item => {
+            const itemEl = document.createElement('div');
+            itemEl.className = 'flex justify-between border-b border-gray-100 pb-2';
+            itemEl.innerHTML = `<span class="text-gray-700">${item.name} x${item.quantity}</span><span class="text-gray-700 font-medium">$${item.total_price.toFixed(2)}</span>`;
+            receiptItems.appendChild(itemEl);
+        });
+        document.getElementById('receiptModal').classList.remove('hidden');
+    }
+</script>
+{% endblock %}

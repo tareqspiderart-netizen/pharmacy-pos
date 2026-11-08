@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Pharmacy POS{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
+        <p class="text-gray-600">Welcome back to your Pharmacy POS system</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Total Sales -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Total Sales</p>
+                    <h3 class="text-3xl font-bold text-blue-600 mt-1">${{ "%.2f"|format(total_sales) }}</h3>
+                    <p class="text-xs text-green-600 mt-2 font-medium">Today: ${{ "%.2f"|format(today_sales) }}</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                    <i class="fas fa-dollar-sign text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expiring Soon -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Expiring Soon</p>
+                    <h3 class="text-3xl font-bold text-red-600 mt-1">{{ expiring_count }}</h3>
+                    <p class="text-xs text-red-600 mt-2 font-medium">Within 30 days</p>
+                </div>
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center text-red-600">
+                    <i class="fas fa-exclamation-triangle text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Low Stock -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Low Stock Items</p>
+                    <h3 class="text-3xl font-bold text-orange-600 mt-1">{{ low_stock_count }}</h3>
+                    <p class="text-xs text-orange-600 mt-2 font-medium">Below threshold (10)</p>
+                </div>
+                <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600">
+                    <i class="fas fa-exclamation-circle text-xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expired -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-medium text-gray-500 uppercase tracking-wider">Expired Medicines</p>
+                    <h3 class="text-3xl font-bold text-gray-600 mt-1">{{ expired_count }}</h3>
+                    <p class="text-xs text-gray-600 mt-2 font-medium">Already expired</p>
+                </div>
+                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-600">
+                    <i class="fas fa-skull-crossbones text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
